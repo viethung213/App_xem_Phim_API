@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 public class PersonController {
     
     private final PersonService personService;
-
+                        
     @GetMapping("/actor/{movie_id}")
     public List<Person> findAllActorForMovie(@PathVariable String movie_id) {
         return personService.findALLActorForMovie(movie_id,"Movie_Actor");

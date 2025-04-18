@@ -1,20 +1,29 @@
 package com.appxemphim.firebaseBackend.service;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import com.appxemphim.firebaseBackend.dto.request.SetPassWordRequest;
 import com.appxemphim.firebaseBackend.security.JwtUtil;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
+import com.google.firebase.auth.FirebaseAuth;
 
+import com.google.firebase.auth.UserRecord;
 import com.google.firebase.cloud.FirestoreClient;
+
 
 @Service
 public class AccountService {
     private final Firestore db = FirestoreClient.getFirestore();
     @Autowired
     private JwtUtil jwtUtil;
+    private FirebaseAuth firebaseAuth;
 
 
 
@@ -22,13 +31,14 @@ public class AccountService {
         try{        
             DocumentReference roleRef = db.collection("Account_role").document(uid);
             DocumentSnapshot snapshot = roleRef.get().get();
-            if (!snapshot.exists()) {
-                throw new RuntimeException("User with UID " + uid + " not found in Account_role.");
-            }
-            Object roleObj = snapshot.get("role");
-            String roleId = String.valueOf(roleObj);
-            if (roleId == null) {
-                throw new RuntimeException("Role ID is invalid.");
+            String roleId;
+            if (!snapshot.exists() || snapshot.get("role") == null) {
+                Map<String, Object> defaultRole = new HashMap<>();
+                defaultRole.put("role", "2");
+                roleRef.set(defaultRole); // cập nhật vào Firestore
+                roleId = "2";
+            } else {
+                roleId = String.valueOf(snapshot.get("role"));
             }
             DocumentSnapshot roleSnapshot = db.collection("Role").document(roleId).get().get();
             if (!roleSnapshot.exists()) {
@@ -40,5 +50,24 @@ public class AccountService {
             throw new RuntimeException(e.getMessage());
         }
     }
-    
+
+    public String setPass(SetPassWordRequest request) {
+        try {
+            String email = request.getEmail();
+            String newPassword = request.getNewpass();
+
+            UserRecord userRecord = FirebaseAuth.getInstance().getUserByEmail(email);
+            if(userRecord==null){
+                throw new RuntimeException("Khong tìm thấy tài khoản với email này");
+            }
+            String uid = userRecord.getUid();
+            UserRecord.UpdateRequest updateRequest = new UserRecord.UpdateRequest(uid).setPassword(newPassword);
+            firebaseAuth.getInstance().updateUser(updateRequest);
+
+            return "Mật khẩu đã được cập nhật thành công.";
+        } catch (Exception e) {
+            e.printStackTrace();
+           throw new RuntimeException("Lỗi khi thay đổi mật khẩu: "+ e.getMessage());
+        }
+    }
 }

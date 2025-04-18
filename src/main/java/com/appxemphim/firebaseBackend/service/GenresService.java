@@ -44,5 +44,7 @@ public class GenresService {
             throw new RuntimeException("Lỗi khi lấy thể loại: "+ e.getMessage());
         }
     }
+    // lấy tất cả các danh sách thể loại
+    
 
 }
